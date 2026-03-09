@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from modules.shared.__config.logging_config import setup_logging
 from modules.shared.setup import initialize
 from modules.shared.services.auth.jwt_middleware import JwtMiddleware
+from modules.shared.services.rate_limiter import RateLimitMiddleware
 from workers.api.routes import (
     book_router,
     review_router,
@@ -46,6 +47,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(JwtMiddleware)
 
     # Routes
