@@ -46,6 +46,33 @@ async def export_books(
         raise HTTPException(status_code=500, detail="Export failed")
 
 
+@router.post("/export/books/optimized")
+async def export_books_optimized(
+    data: ExportRequest,
+    chunk_size: int = Query(500, ge=100, le=5000),
+    user: UserClaims = Depends(get_current_user),
+) -> dict:
+    """Export books to CSV using optimized chunked writing.
+
+    Args:
+        data: Export parameters.
+        chunk_size: Rows per chunk for streaming.
+        user: Authenticated user claims.
+
+    Returns:
+        Path to the exported file.
+    """
+    try:
+        filepath = _export_service.export_books_csv_chunked(
+            data.filename, data.genre, chunk_size=chunk_size
+        )
+        logger.info("Optimized export by user %s: %s", user.user_id, filepath)
+        return {"filepath": filepath, "status": "complete", "method": "chunked"}
+    except Exception as e:
+        logger.error("Optimized export failed: %s", e)
+        raise HTTPException(status_code=500, detail="Export failed")
+
+
 @router.post("/export/reviews")
 async def export_reviews(
     book_id: int = Query(...),
