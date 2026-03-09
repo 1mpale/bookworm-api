@@ -23,11 +23,17 @@ class SearchService:
         query: str,
         page: int = 1,
         page_size: Optional[int] = None,
+        genre: Optional[str] = None,
     ):
         effective_page_size = page_size or self._default_page_size
         offset = (page - 1) * effective_page_size
 
         logger.info(f"Searching books with query: {query}")
+
+        # Build genre filter
+        genre_clause = ""
+        if genre:
+            genre_clause = f"AND genre = '{genre}'"
 
         # Build search query with ranking
         sql = f"""
@@ -40,6 +46,7 @@ class SearchService:
             WHERE is_deleted = false
               AND to_tsvector('english', title || ' ' || COALESCE(author, '') || ' ' || COALESCE(description, ''))
                   @@ plainto_tsquery('english', '{query}')
+              {genre_clause}
             ORDER BY rank DESC
             LIMIT {effective_page_size}
             OFFSET {offset}
