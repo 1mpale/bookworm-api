@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://bookworm:bookworm@db:5432/bookworm
+      - REDIS_URL=redis://cache:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - EMBEDDING_API_URL=http://embedding:8001
+    depends_on:
+      - db
+      - cache
+    volumes:
+      - .:/app
+    command: uvicorn workers.api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  sentiment-worker:
+    build: .
+    environment:
+      - DATABASE_URL=postgresql://bookworm:bookworm@db:5432/bookworm
+      - REDIS_URL=redis://cache:6379/0
+    depends_on:
+      - db
+      - cache
+    command: python -m workers.background.sentiment_worker
+
+  recommendation-worker:
+    build: .
+    environment:
+      - DATABASE_URL=postgresql://bookworm:bookworm@db:5432/bookworm
+      - REDIS_URL=redis://cache:6379/0
+      - EMBEDDING_API_URL=http://embedding:8001
+    depends_on:
+      - db
+      - cache
+    command: python -m workers.background.recommendation_worker
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: bookworm
+      POSTGRES_PASSWORD: bookworm
+      POSTGRES_DB: bookworm
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  cache:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:

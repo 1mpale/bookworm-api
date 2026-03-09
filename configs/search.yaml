@@ -1,0 +1,13 @@
+search:
+  max_results: ${SEARCH_MAX_RESULTS:-50}
+  default_page_size: ${SEARCH_DEFAULT_PAGE_SIZE:-20}
+  min_score: 0.1
+  weights:
+    title: 3.0
+    author: 2.0
+    description: 1.0
+    genre: 1.5
+  embedding:
+    enabled: true
+    similarity_threshold: 0.7
+    hybrid_weight: 0.5
