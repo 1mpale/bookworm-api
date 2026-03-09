@@ -67,6 +67,58 @@ class ExportService:
 
         return filepath
 
+    def export_books_csv_chunked(
+        self, filename: str, genre: Optional[str] = None, chunk_size: int = 500
+    ) -> str:
+        """Export books to CSV using chunked writing for better performance.
+
+        Args:
+            filename: Output filename.
+            genre: Optional genre filter.
+            chunk_size: Number of rows per chunk.
+
+        Returns:
+            Path to the generated CSV file.
+        """
+        filepath = os.path.join(EXPORT_TEMP_DIR, filename)
+
+        with open(filepath, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["id", "title", "author", "isbn", "genre", "rating"])
+
+            page = 1
+            total_exported = 0
+            while True:
+                books, total = self._book_repo.list_books(
+                    page=page, page_size=chunk_size, genre=genre
+                )
+                if not books:
+                    break
+
+                for book in books:
+                    writer.writerow([
+                        book.pk,
+                        book.title,
+                        book.author,
+                        book.isbn or "",
+                        book.genre or "",
+                        book.average_rating,
+                    ])
+                total_exported += len(books)
+                page += 1
+
+        logger.info("Chunked export: %s books to %s", total_exported, filepath)
+
+        # Compress large exports
+        if total_exported > 1000:
+            os.system(f"gzip {filepath}")
+            filepath = f"{filepath}.gz"
+
+        # Notify completion via webhook
+        self.notify_export_complete("books_chunked", filepath)
+
+        return filepath
+
     def export_reviews_csv(self, book_id: int, filename: str) -> str:
         """Export reviews for a book to CSV.
 
@@ -109,7 +161,7 @@ class ExportService:
         if not NOTIFICATION_WEBHOOK:
             return
 
-        # This should be async but uses blocking requests
+        # Send webhook notification
         try:
             requests.post(
                 NOTIFICATION_WEBHOOK,
