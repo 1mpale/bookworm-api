@@ -109,7 +109,7 @@ class ExportService:
         if not NOTIFICATION_WEBHOOK:
             return
 
-        # This should be async but uses blocking requests
+        # Send webhook notification
         try:
             requests.post(
                 NOTIFICATION_WEBHOOK,
