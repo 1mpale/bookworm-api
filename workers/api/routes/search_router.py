@@ -22,6 +22,7 @@ async def search_books(
     q: str = Query(..., min_length=1, max_length=200),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
+    genre: Optional[str] = None,
     user: UserClaims = Depends(get_current_user),
 ) -> dict:
     """Search books by query string.
@@ -30,6 +31,7 @@ async def search_books(
         q: Search query.
         page: Page number.
         page_size: Items per page.
+        genre: Optional genre filter.
         user: Authenticated user claims.
 
     Returns:
@@ -37,7 +39,7 @@ async def search_books(
     """
     logger.info(f"User {user.user_id} searching for: {q}")
 
-    results = _search_service.search_books(q, page, page_size)
+    results = _search_service.search_books(q, page, page_size, genre=genre)
     total = _search_service.count_results(q)
 
     return {
@@ -46,6 +48,7 @@ async def search_books(
         "page": page,
         "page_size": page_size,
         "query": q,
+        "genre": genre,
     }
 
 
